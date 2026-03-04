@@ -27,7 +27,9 @@ app.use(morgan("dev"));
 // API routes
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
-
+app.get('/',(req,res)=>{
+  res.send("Hello World"),
+})
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Smart Menu API is running" });
