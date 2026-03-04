@@ -27,9 +27,11 @@ app.use(morgan("dev"));
 // API routes
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
-app.get('/',(req,res)=>{
-  res.send("Hello World"),
-})
+
+app.get('/', (req, res) => {
+  res.send("Smart Menu API is running");
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Smart Menu API is running" });
@@ -37,7 +39,12 @@ app.get("/api/health", (req, res) => {
 
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-  console.log(`Smart Menu API server running on port ${PORT}`);
-  console.log("Check http://localhost:5001/api/menu to see the items.");
-});
+// Only listen if not running as a serverless function (Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Smart Menu API server running on port ${PORT}`);
+  });
+}
+
+// CRITICAL FOR VERCEL: Export the app
+export default app;
