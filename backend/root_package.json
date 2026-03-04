@@ -1,0 +1,26 @@
+{
+  "name": "smart-menu-mern",
+  "version": "1.0.0",
+  "description": "Smart Menu MERN Stack - Production Ready",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "server": "nodemon server.js",
+    "client": "cd frontend && npm run dev",
+    "dev": "npx concurrently \"npm run server\" \"npm run client\"",
+    "build": "cd frontend && npm install && npm run build",
+    "seed": "curl -X POST http://localhost:5001/api/menu/seed"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "nodemon": "^3.1.7"
+  }
+}
