@@ -111,8 +111,8 @@ router.post("/bulk", async (req, res) => {
   }
 });
 
-// Seed sample data (for dev only)
-router.post("/seed", async (req, res) => {
+// Seed sample data (for dev only) - Changed to GET so user can seed via browser
+router.get("/seed", async (req, res) => {
   try {
     await MenuItem.deleteMany({});
     
