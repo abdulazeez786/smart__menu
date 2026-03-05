@@ -55,9 +55,6 @@ router.patch("/images", async (req, res) => {
 });
 
 // POST /api/menu/bulk - insert menu items (admin/dev utility)
-// Supports either:
-// - { items: [{ name, category, price, description?, imageUrl?, isAvailable? }, ...] }
-// - { names: ["Idli", "Dosa"], category?: "tiffin", price?: 100 }
 router.post("/bulk", async (req, res) => {
   try {
     const { items, names, category, price } = req.body || {};
@@ -70,7 +67,7 @@ router.post("/bulk", async (req, res) => {
         category: String(it.category || "").toLowerCase().trim(),
         description: it.description ? String(it.description) : undefined,
         price: Number(it.price),
-        imageUrl: it.imageUrl ? String(it.imageUrl) : undefined,
+        // imageUrl is no longer included by default
         isAvailable: typeof it.isAvailable === "boolean" ? it.isAvailable : true,
       }));
     } else if (Array.isArray(names) && names.length > 0) {
@@ -86,7 +83,6 @@ router.post("/bulk", async (req, res) => {
       return res.status(400).json({ message: "Provide either 'items' or 'names' array" });
     }
 
-    // Basic validation
     const allowedCategories = ["tiffin", "starter", "veg", "nonveg", "dessert", "drink"];
     const invalid = toInsert.find(
       (it) =>
@@ -111,51 +107,12 @@ router.post("/bulk", async (req, res) => {
   }
 });
 
-// Seed sample data (for dev only) - Changed to GET so user can seed via browser
+// Seed sample data (for dev only) - GET method, no images
 router.get("/seed", async (req, res) => {
   try {
     await MenuItem.deleteMany({});
     
     const allItems = [];
-
-    const buildFoodImageUrl = (name, category) => {
-      // loremflickr gives a wide variety of real photos by tags.
-      // lock makes it deterministic per item, so images don't shuffle on every seed.
-      const cat = String(category || "").toLowerCase();
-
-      const baseTagsByCategory = {
-        tiffin: ["southindian", "breakfast", "tiffin", "dosa", "idli"],
-        starter: ["starter", "appetizer", "snack", "fingerfood"],
-        veg: ["vegetarian", "veg", "curry", "indianfood"],
-        nonveg: ["chicken", "meat", "nonveg", "indianfood"],
-        dessert: ["dessert", "sweet", "cake", "pastry"],
-        drink: ["drink", "beverage", "juice", "coffee"],
-      };
-
-      const normalizeWords = (value) =>
-        String(value || "")
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, " ")
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 3); // keep tags focused
-
-      const tags = [
-        ...(baseTagsByCategory[cat] || ["food"]),
-        ...normalizeWords(name),
-      ]
-        .map((t) => encodeURIComponent(t))
-        .join(",");
-
-      let hash = 0;
-      const input = `${cat}:${name}`;
-      for (let i = 0; i < input.length; i++) {
-        hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
-      }
-      const lock = (hash % 10000) + 1;
-
-      return `https://loremflickr.com/800/600/${tags}?lock=${lock}`;
-    };
 
     // --- Non-Veg Items (40 items) ---
     const nonVegNames = [
@@ -174,7 +131,6 @@ router.get("/seed", async (req, res) => {
         category: "nonveg",
         description: `Authentic and spicy ${name} prepared with traditional spices.`,
         price: 250 + i * 10,
-        imageUrl: buildFoodImageUrl(name, "nonveg"),
         isAvailable: true
       });
     });
@@ -196,7 +152,6 @@ router.get("/seed", async (req, res) => {
         category: "dessert",
         description: `Sweet and delicious ${name} to end your meal perfectly.`,
         price: 80 + i * 5,
-        imageUrl: buildFoodImageUrl(name, "dessert"),
         isAvailable: true
       });
     });
@@ -218,52 +173,20 @@ router.get("/seed", async (req, res) => {
         category: "drink",
         description: `Refreshing ${name} to keep you cool.`,
         price: 40 + i * 3,
-        imageUrl: buildFoodImageUrl(name, "drink"),
         isAvailable: true
       });
     });
 
     // --- Professional Tiffin Items ---
     const tiffinNames = [
-      "Idli Sambar",
-      "Masala Dosa",
-      "Plain Dosa",
-      "Onion Uthappam",
-      "Ghee Roast Dosa",
-      "Podi Idli",
-      "Medu Vada",
-      "Upma",
-      "Pongal",
-      "Poori Bhaji",
-      "Paneer Paratha",
-      "Aloo Paratha",
-      "Veg Sandwich",
-      "Cheese Sandwich",
-      "Veg Cutlet",
-      "Paneer Roll",
-      "Veg Frankie",
-      "Chole Bhature",
-      "Stuffed Kulcha",
-      "Mysore Bonda",
-      "Rava Dosa",
-      "Set Dosa",
-      "Mini Idli",
-      "Curd Rice",
-      "Lemon Rice",
-      "Tamarind Rice",
-      "Puliyogare",
-      "Vegetable Pulao",
-      "Bisibele Bath",
-      "Khichdi",
-      "Kothu Parotta",
-      "Egg Dosa",
-      "Paneer Dosa",
-      "Cheese Dosa",
-      "Ragi Dosa",
-      "Kara Bath",
-      "Idiyappam",
-      "Aval Upma",
-      "Sabudana Khichdi"
+      "Idli Sambar", "Masala Dosa", "Plain Dosa", "Onion Uthappam", "Ghee Roast Dosa",
+      "Podi Idli", "Medu Vada", "Upma", "Pongal", "Poori Bhaji",
+      "Paneer Paratha", "Aloo Paratha", "Veg Sandwich", "Cheese Sandwich", "Veg Cutlet",
+      "Paneer Roll", "Veg Frankie", "Chole Bhature", "Stuffed Kulcha", "Mysore Bonda",
+      "Rava Dosa", "Set Dosa", "Mini Idli", "Curd Rice", "Lemon Rice",
+      "Tamarind Rice", "Puliyogare", "Vegetable Pulao", "Bisibele Bath", "Khichdi",
+      "Kothu Parotta", "Egg Dosa", "Paneer Dosa", "Cheese Dosa", "Ragi Dosa",
+      "Kara Bath", "Idiyappam", "Aval Upma", "Sabudana Khichdi"
     ];
     tiffinNames.forEach((name, i) => {
       allItems.push({
@@ -271,7 +194,6 @@ router.get("/seed", async (req, res) => {
         category: "tiffin",
         description: `Classic South Indian tiffin - ${name}.`,
         price: 80 + i * 5,
-        imageUrl: buildFoodImageUrl(name, "tiffin"),
         isAvailable: true
       });
     });
@@ -293,7 +215,6 @@ router.get("/seed", async (req, res) => {
         category: "starter",
         description: `Perfect starter to begin your meal - ${name}.`,
         price: 140 + i * 6,
-        imageUrl: buildFoodImageUrl(name, "starter"),
         isAvailable: true
       });
     });
@@ -315,13 +236,12 @@ router.get("/seed", async (req, res) => {
         category: "veg",
         description: `Traditional vegetarian main course - ${name}.`,
         price: 190 + i * 7,
-        imageUrl: buildFoodImageUrl(name, "veg"),
         isAvailable: true
       });
     });
 
     const created = await MenuItem.insertMany(allItems);
-    res.status(201).json({ message: "Detailed menu seeded", count: created.length });
+    res.status(201).json({ message: "Detailed menu seeded without images", count: created.length });
   } catch (err) {
     console.error("Error seeding menu items:", err);
     res.status(500).json({ message: "Failed to seed menu items" });
