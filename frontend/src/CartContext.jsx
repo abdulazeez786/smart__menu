@@ -1,12 +1,25 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
-  const [customerName, setCustomerName] = useState("");
-  const [tableNumber, setTableNumber] = useState("");
+  const [customerName, setCustomerName] = useState(localStorage.getItem("customerName") || "");
+  const [tableNumber, setTableNumber] = useState(localStorage.getItem("tableNumber") || "");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [items, setItems] = useState([]);
+  const [userOrders, setUserOrders] = useState(JSON.parse(localStorage.getItem("userOrders") || "[]"));
+
+  useEffect(() => {
+    localStorage.setItem("customerName", customerName);
+  }, [customerName]);
+
+  useEffect(() => {
+    localStorage.setItem("tableNumber", tableNumber);
+  }, [tableNumber]);
+
+  useEffect(() => {
+    localStorage.setItem("userOrders", JSON.stringify(userOrders));
+  }, [userOrders]);
 
   const addItem = (menuItem) => {
     setItems((prev) => {
@@ -43,6 +56,10 @@ export const CartProvider = ({ children }) => {
     setPaymentMethod("cash");
   };
 
+  const addOrderToHistory = (orderId) => {
+    setUserOrders((prev) => [...new Set([...prev, orderId])]);
+  };
+
   const totalAmount = useMemo(
     () =>
       items.reduce(
@@ -65,6 +82,8 @@ export const CartProvider = ({ children }) => {
     updateQuantity,
     clearCart,
     totalAmount,
+    userOrders,
+    addOrderToHistory
   };
 
   return (
