@@ -16,7 +16,6 @@ const categories = [
   { id: "drink", label: "Drinks" },
 ];
 
-// Admin Credentials
 const ADMIN_ID = "admin";
 const ADMIN_PASS = "admin123";
 
@@ -288,9 +287,12 @@ const MenuView = () => {
         <div className="row g-3">
           {menuItems.map((item) => (
             <div className="col-md-4" key={item._id}>
-              <div className="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
+              <div className={`card h-100 shadow-sm border-0 rounded-3 overflow-hidden ${!item.isAvailable ? 'opacity-50' : ''}`}>
                 <div className="card-body d-flex flex-column">
-                  <h6 className="card-title fw-bold mb-1">{item.name}</h6>
+                  <div className="d-flex justify-content-between">
+                    <h6 className="card-title fw-bold mb-1">{item.name}</h6>
+                    {!item.isAvailable && <span className="badge bg-danger mb-2">Unavailable</span>}
+                  </div>
                   <p className="card-text text-muted extra-small mb-2" style={{ fontSize: '11px' }}>
                     {item.description}
                   </p>
@@ -301,13 +303,71 @@ const MenuView = () => {
                       onClick={() => addItem(item)}
                       disabled={!item.isAvailable}
                     >
-                      Add
+                      {item.isAvailable ? "Add" : "Sold Out"}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PaymentGatewayModal = ({ total, onPaymentSuccess, onCancel }) => {
+  const [processing, setProcessing] = useState(false);
+
+  const handlePay = () => {
+    setProcessing(true);
+    // Simulate API call to Payment Gateway
+    setTimeout(() => {
+      setProcessing(false);
+      onPaymentSuccess();
+    }, 2000);
+  };
+
+  return (
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px' }}>
+          <div className="modal-header border-0 bg-light rounded-top">
+            <h5 className="modal-title fw-bold">Secure Payment</h5>
+            <button type="button" className="btn-close" onClick={onCancel}></button>
+          </div>
+          <div className="modal-body text-center py-5">
+            <div className="mb-4">
+              <span className="text-muted h6">Total Amount to Pay</span>
+              <div className="display-4 fw-bold text-success">₹{total}</div>
+            </div>
+            
+            <div className="p-3 border rounded-3 bg-light mb-4 text-start">
+              <div className="small text-muted mb-2">Simulated Payment Gateway</div>
+              <div className="form-check mb-2">
+                <input className="form-check-input" type="radio" checked readOnly />
+                <label className="form-check-label">UPI / QR Code</label>
+              </div>
+              <div className="form-check">
+                <input className="form-check-input" type="radio" disabled />
+                <label className="form-check-label text-muted">Credit/Debit Card (Coming Soon)</label>
+              </div>
+            </div>
+
+            {processing ? (
+              <div className="py-3">
+                <div className="spinner-border text-success mb-3"></div>
+                <p className="fw-bold">Processing Secure Payment...</p>
+              </div>
+            ) : (
+              <button className="btn btn-success btn-lg w-100 rounded-pill fw-bold" onClick={handlePay}>
+                Pay Now ₹{total}
+              </button>
+            )}
+          </div>
+          <div className="modal-footer border-0 justify-content-center pb-4">
+            <small className="text-muted">🔒 Your payment is encrypted and secure</small>
+          </div>
         </div>
       </div>
     </div>
@@ -331,25 +391,25 @@ const CartView = () => {
   } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [showPayment, setShowPayment] = useState(false);
 
-  const submitOrder = async () => {
+  const handlePlaceOrderClick = () => {
     if (!customerName || !tableNumber || items.length === 0) {
       setMessage("Please fill details and add at least one item.");
       return;
     }
+    setShowPayment(true);
+  };
 
-    const confirmed = window.confirm(
-      `Confirm order for ₹${totalAmount}?`
-    );
-    if (!confirmed) return;
-
+  const handlePaymentSuccess = async () => {
+    setShowPayment(false);
     try {
       setSubmitting(true);
       const payload = {
         customerName,
         tableNumber: Number(tableNumber),
         totalAmount,
-        paymentMethod,
+        paymentMethod: "online", // Gateway successful
         items: items.map((i) => ({
           menuItem: i.menuItem._id,
           quantity: i.quantity,
@@ -357,66 +417,78 @@ const CartView = () => {
       };
 
       const res = await API.post("/orders", payload);
+      // After order creation, also update payment status
+      await API.patch(`/orders/${res.data._id}/payment`, { paymentStatus: "completed" });
+      
       addOrderToHistory(res.data._id);
       clearCart();
-      setMessage("Order placed successfully! Track it below.");
+      setMessage("Payment Successful! Order placed.");
     } catch (err) {
       console.error(err);
-      setMessage("Failed to place order.");
+      setMessage("Payment success but order failed. Contact staff.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="card shadow-sm border-0 sticky-top" style={{ top: '80px' }}>
-      <div className="card-body">
-        <h5 className="card-title fw-bold mb-3">Your Order</h5>
-        <div className="mb-2">
-          <label className="form-label small fw-bold mb-1">Name</label>
-          <input
-            className="form-control form-control-sm"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Enter your name"
-          />
-        </div>
-        <div className="mb-3">
-          <label className="form-label small fw-bold mb-1">Table</label>
-          <input
-            type="number"
-            className="form-control form-control-sm"
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            placeholder="No."
-          />
-        </div>
+    <>
+      {showPayment && (
+        <PaymentGatewayModal 
+          total={totalAmount} 
+          onPaymentSuccess={handlePaymentSuccess} 
+          onCancel={() => setShowPayment(false)} 
+        />
+      )}
+      <div className="card shadow-sm border-0 sticky-top" style={{ top: '80px' }}>
+        <div className="card-body">
+          <h5 className="card-title fw-bold mb-3">Your Order</h5>
+          <div className="mb-2">
+            <label className="form-label small fw-bold mb-1">Name</label>
+            <input
+              className="form-control form-control-sm"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Enter your name"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="form-label small fw-bold mb-1">Table</label>
+            <input
+              type="number"
+              className="form-control form-control-sm"
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+              placeholder="No."
+            />
+          </div>
 
-        <ul className="list-group mb-3">
-          {items.map((i) => (
-            <li key={i.menuItem._id} className="list-group-item d-flex justify-content-between align-items-center p-2 border-0 border-bottom">
-              <div className="small">
-                <div className="fw-semibold">{i.menuItem.name}</div>
-                <div className="text-muted">₹ {i.menuItem.price} x {i.quantity}</div>
-              </div>
-              <button className="btn btn-sm text-danger" onClick={() => removeItem(i.menuItem._id)}>✕</button>
-            </li>
-          ))}
-        </ul>
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <span className="fw-bold">Total:</span>
-          <span className="fw-bold text-success h5 mb-0">₹ {totalAmount}</span>
+          <ul className="list-group mb-3">
+            {items.map((i) => (
+              <li key={i.menuItem._id} className="list-group-item d-flex justify-content-between align-items-center p-2 border-0 border-bottom">
+                <div className="small">
+                  <div className="fw-semibold">{i.menuItem.name}</div>
+                  <div className="text-muted">₹ {i.menuItem.price} x {i.quantity}</div>
+                </div>
+                <button className="btn btn-sm text-danger" onClick={() => removeItem(i.menuItem._id)}>✕</button>
+              </li>
+            ))}
+          </ul>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <span className="fw-bold">Total:</span>
+            <span className="fw-bold text-success h5 mb-0">₹ {totalAmount}</span>
+          </div>
+          {message && <div className="alert alert-info py-2 small mb-3">{message}</div>}
+          <button
+            className="btn btn-success w-100 fw-bold py-2"
+            onClick={handlePlaceOrderClick}
+            disabled={submitting || items.length === 0}
+          >
+            {submitting ? "Processing..." : "Pay & Place Order"}
+          </button>
         </div>
-        {message && <div className="alert alert-info py-2 small mb-3">{message}</div>}
-        <button
-          className="btn btn-success w-100 fw-bold py-2"
-          onClick={submitOrder}
-          disabled={submitting || items.length === 0}
-        >
-          {submitting ? "Placing..." : "Place Order"}
-        </button>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -457,47 +529,52 @@ const MenuPage = () => {
 
 const AdminPage = () => {
   const [orders, setOrders] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [view, setView] = useState("orders"); // "orders" or "menu"
 
   const loadOrders = async () => {
     try {
-      setLoading(true);
-      setError("");
       const res = await API.get(`/orders?t=${new Date().getTime()}`);
       setOrders(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load orders.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+  };
+
+  const loadMenu = async () => {
+    try {
+      const res = await API.get(`/menu?t=${new Date().getTime()}`);
+      setMenuItems(res.data);
+    } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
     loadOrders();
-    const interval = setInterval(loadOrders, 15000);
+    loadMenu();
+    const interval = setInterval(() => {
+      if (view === "orders") loadOrders();
+    }, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [view]);
 
   const updateStatus = async (orderId, status) => {
     try {
       await API.patch(`/orders/${orderId}/status`, { status });
-      setOrders(orders.map(o => o._id === orderId ? { ...o, status } : o));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update status.");
-    }
+      loadOrders();
+    } catch (err) { alert("Failed to update status."); }
   };
 
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
       await API.patch(`/orders/${orderId}/payment`, { paymentStatus });
-      setOrders(orders.map(o => o._id === orderId ? { ...o, paymentStatus } : o));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update payment status.");
-    }
+      loadOrders();
+    } catch (err) { alert("Failed to update payment status."); }
+  };
+
+  const toggleAvailability = async (itemId, currentStatus) => {
+    try {
+      await API.patch(`/menu/${itemId}/availability`, { isAvailable: !currentStatus });
+      loadMenu();
+    } catch (err) { alert("Failed to update availability."); }
   };
 
   const getStatusBadgeClass = (status) => {
@@ -514,56 +591,101 @@ const AdminPage = () => {
     <div className="admin-page-wrapper py-5">
       <div className="container">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="admin-title">Order Dashboard</h2>
-          <button className="btn btn-outline-dark btn-sm" onClick={loadOrders}>Refresh</button>
+          <h2 className="admin-title">{view === "orders" ? "Order Dashboard" : "Manage Menu"}</h2>
+          <div className="btn-group">
+            <button className={`btn btn-sm ${view === 'orders' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setView("orders")}>Orders</button>
+            <button className={`btn btn-sm ${view === 'menu' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setView("menu")}>Menu Items</button>
+            <button className="btn btn-outline-dark btn-sm ms-2" onClick={view === "orders" ? loadOrders : loadMenu}>Refresh</button>
+          </div>
         </div>
 
-        <div className="row g-4">
-          {orders.map((order) => (
-            <div className="col-lg-6 col-xl-4" key={order._id}>
-              <div className="card h-100 shadow-sm border-0 order-card">
-                <div className="card-header bg-white border-0 pt-3 px-3">
-                  <span className={`badge ${getStatusBadgeClass(order.status)}`}>
-                    {order.status.toUpperCase()}
-                  </span>
-                </div>
-                <div className="card-body">
-                  <h5 className="mb-1">{order.customerName} (Table {order.tableNumber})</h5>
-                  <div className="order-items-list my-3">
-                    {order.items.map((it, idx) => (
-                      <div key={idx} className="small mb-1 border-bottom pb-1 d-flex justify-content-between">
-                        <span>{it.menuItem?.name} x{it.quantity}</span>
-                        <span>₹{(it.menuItem?.price || 0) * it.quantity}</span>
+        {view === "orders" ? (
+          <div className="row g-4">
+            {orders.map((order) => (
+              <div className="col-lg-6 col-xl-4" key={order._id}>
+                <div className="card h-100 shadow-sm border-0 order-card">
+                  <div className="card-header bg-white border-0 pt-3 px-3 d-flex justify-content-between">
+                    <span className={`badge ${getStatusBadgeClass(order.status)}`}>{order.status.toUpperCase()}</span>
+                    <span className={`badge ${order.paymentStatus === 'completed' ? 'bg-success' : 'bg-danger'}`}>
+                      {order.paymentStatus === 'completed' ? 'PAID' : 'UNPAID'}
+                    </span>
+                  </div>
+                  <div className="card-body">
+                    <h5 className="mb-1">{order.customerName} (Table {order.tableNumber})</h5>
+                    <div className="order-items-list my-3">
+                      {order.items.map((it, idx) => (
+                        <div key={idx} className="small mb-1 border-bottom pb-1 d-flex justify-content-between">
+                          <span>{it.menuItem?.name} x{it.quantity}</span>
+                          <span>₹{(it.menuItem?.price || 0) * it.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="d-flex justify-content-between fw-bold">
+                      <span>Total</span>
+                      <span className="text-success">₹{order.totalAmount}</span>
+                    </div>
+                  </div>
+                  <div className="card-footer bg-light border-0 p-3">
+                    <div className="d-flex flex-column gap-2">
+                      <div className="d-flex gap-2">
+                        {order.status === "pending" && (
+                          <>
+                            <button className="btn btn-primary btn-sm flex-grow-1" onClick={() => updateStatus(order._id, "accepted")}>Accept</button>
+                            <button className="btn btn-outline-danger btn-sm" onClick={() => updateStatus(order._id, "rejected")}>Reject</button>
+                          </>
+                        )}
+                        {order.status === "accepted" && (
+                          <button className="btn btn-success btn-sm w-100" onClick={() => updateStatus(order._id, "finished")}>Mark Finished</button>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  <div className="d-flex justify-content-between fw-bold">
-                    <span>Total</span>
-                    <span className="text-success">₹{order.totalAmount}</span>
-                  </div>
-                </div>
-                <div className="card-footer bg-light border-0 p-3">
-                  <div className="d-flex flex-column gap-2">
-                    <div className="d-flex gap-2">
-                      {order.status === "pending" && (
-                        <>
-                          <button className="btn btn-primary btn-sm flex-grow-1" onClick={() => updateStatus(order._id, "accepted")}>Accept</button>
-                          <button className="btn btn-outline-danger btn-sm" onClick={() => updateStatus(order._id, "rejected")}>Reject</button>
-                        </>
-                      )}
-                      {order.status === "accepted" && (
-                        <button className="btn btn-success btn-sm w-100" onClick={() => updateStatus(order._id, "finished")}>Mark Finished</button>
+                      {order.paymentStatus === "pending" && (
+                        <button className="btn btn-warning btn-sm w-100" onClick={() => updatePaymentStatus(order._id, "completed")}>Confirm Payment</button>
                       )}
                     </div>
-                    {order.paymentStatus === "pending" && (
-                      <button className="btn btn-warning btn-sm w-100" onClick={() => updatePaymentStatus(order._id, "completed")}>Confirm Payment</button>
-                    )}
                   </div>
                 </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="card border-0 shadow-sm rounded-4">
+            <div className="table-responsive p-3">
+              <table className="table table-hover align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>Item Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Availability</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {menuItems.map(item => (
+                    <tr key={item._id}>
+                      <td className="fw-bold">{item.name}</td>
+                      <td className="text-capitalize">{item.category}</td>
+                      <td>₹{item.price}</td>
+                      <td>
+                        <span className={`badge ${item.isAvailable ? 'bg-success' : 'bg-danger'}`}>
+                          {item.isAvailable ? 'Available' : 'Unavailable'}
+                        </span>
+                      </td>
+                      <td>
+                        <button 
+                          className={`btn btn-sm ${item.isAvailable ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                          onClick={() => toggleAvailability(item._id, item.isAvailable)}
+                        >
+                          {item.isAvailable ? 'Mark as Out of Stock' : 'Mark as Available'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
