@@ -16,18 +16,18 @@ const categories = [
   { id: "drink", label: "Drinks" },
 ];
 
-const ADMIN_ID = "admin";
-const ADMIN_PASS = "admin123";
+const CHEF_ID = "chef";
+const CHEF_PASS = "chef123";
 const OWNER_ID = "owner";
 const OWNER_PASS = "owner123";
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
-  const isAdmin = localStorage.getItem("isAdminAuthenticated") === "true";
+  const isChef = localStorage.getItem("isChefAuthenticated") === "true";
   const isOwner = localStorage.getItem("isOwnerAuthenticated") === "true";
 
   const handleLogout = () => {
-    localStorage.removeItem("isAdminAuthenticated");
+    localStorage.removeItem("isChefAuthenticated");
     localStorage.removeItem("isOwnerAuthenticated");
     navigate("/");
   };
@@ -45,7 +45,7 @@ const Layout = ({ children }) => {
           </span>
           <div className="d-flex gap-2">
             <Link to="/role-select" className="btn btn-sm btn-outline-danger">Switch Role</Link>
-            {(isAdmin || isOwner) && (
+            {(isChef || isOwner) && (
               <button className="btn btn-sm btn-dark" onClick={handleLogout}>Logout</button>
             )}
           </div>
@@ -71,9 +71,9 @@ const RoleSelectionPage = () => {
             </div>
           </div>
           <div className="col-md-4">
-            <div className="card p-4 text-center shadow-lg border-0 h-100 role-card" onClick={() => navigate("/admin")}>
-              <div className="display-4 mb-3">🔐</div>
-              <h3 className="fw-bold" style={{ color: 'orangered', fontFamily: 'cursive' }}>Admin</h3>
+            <div className="card p-4 text-center shadow-lg border-0 h-100 role-card" onClick={() => navigate("/chef")}>
+              <div className="display-4 mb-3">👨‍🍳</div>
+              <h3 className="fw-bold" style={{ color: 'orangered', fontFamily: 'cursive' }}>Chef</h3>
               <p className="text-muted small">Manage orders & menu</p>
             </div>
           </div>
@@ -98,13 +98,13 @@ const LoginPage = ({ type }) => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (type === "admin") {
-      if (id === ADMIN_ID && pass === ADMIN_PASS) {
-        localStorage.setItem("isAdminAuthenticated", "true");
-        navigate("/admin");
-      } else setError("Invalid Admin Credentials");
+    if (type === "chef") {
+      if (id.trim() === CHEF_ID && pass.trim() === CHEF_PASS) {
+        localStorage.setItem("isChefAuthenticated", "true");
+        navigate("/chef");
+      } else setError("Invalid Chef Credentials");
     } else {
-      if (id === OWNER_ID && pass === OWNER_PASS) {
+      if (id.trim() === OWNER_ID && pass.trim() === OWNER_PASS) {
         localStorage.setItem("isOwnerAuthenticated", "true");
         navigate("/owner");
       } else setError("Invalid Owner Credentials");
@@ -176,7 +176,7 @@ const UserOrderTracking = () => {
   );
 };
 
-const MenuView = ({ isAdmin = false, toggleAvailability = null }) => {
+const MenuView = ({ isChef = false, toggleAvailability = null }) => {
   const [activeCategory, setActiveCategory] = useState("tiffin");
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -214,7 +214,7 @@ const MenuView = ({ isAdmin = false, toggleAvailability = null }) => {
                     <p className="extra-small text-muted" style={{fontSize:'11px'}}>{item.description}</p>
                     <div className="mt-auto d-flex justify-content-between align-items-center">
                       <span className="fw-bold text-success">₹{item.price}</span>
-                      {isAdmin ? (
+                      {isChef ? (
                         <button className={`btn btn-sm ${item.isAvailable ? 'btn-danger' : 'btn-success'}`} onClick={() => toggleAvailability(item._id, item.isAvailable)}>
                           {item.isAvailable ? "Disable" : "Enable"}
                         </button>
@@ -363,7 +363,7 @@ const CartView = () => {
   );
 };
 
-const AdminPage = () => {
+const ChefPage = () => {
   const [orders, setOrders] = useState([]);
   const [view, setView] = useState("orders");
 
@@ -387,14 +387,14 @@ const AdminPage = () => {
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold">{view === 'orders' ? 'Live Orders' : 'Menu Management'}</h2>
+        <h2 className="fw-bold">{view === 'orders' ? 'Chef Orders' : 'Menu Management'}</h2>
         <div className="btn-group rounded-pill overflow-hidden shadow-sm">
           <button className={`btn btn-sm ${view === 'orders' ? 'btn-dark' : 'btn-light'}`} onClick={() => setView('orders')}>Orders</button>
           <button className={`btn btn-sm ${view === 'menu' ? 'btn-dark' : 'btn-light'}`} onClick={() => setView('menu')}>Menu</button>
         </div>
       </div>
       {view === 'menu' ? (
-        <MenuView isAdmin={true} toggleAvailability={async (id, current) => { 
+        <MenuView isChef={true} toggleAvailability={async (id, current) => { 
           await API.patch(`/menu/${id}/availability`, { isAvailable: !current }); loadData(); 
         }} />
       ) : (
@@ -498,9 +498,9 @@ const OwnerPage = () => {
 };
 
 const ProtectedRoute = ({ children, type }) => {
-  const isAdmin = localStorage.getItem("isAdminAuthenticated") === "true";
+  const isChef = localStorage.getItem("isChefAuthenticated") === "true";
   const isOwner = localStorage.getItem("isOwnerAuthenticated") === "true";
-  if (type === "admin" && !isAdmin) return <Navigate to="/login-admin" />;
+  if (type === "chef" && !isChef) return <Navigate to="/login-chef" />;
   if (type === "owner" && !isOwner) return <Navigate to="/login-owner" />;
   return children;
 };
@@ -512,12 +512,12 @@ const App = () => (
       <Route path="/role-select" element={<RoleSelectionPage />} />
       <Route path="/menu" element={<Layout><div className="menu-page-wrapper py-4"><div className="container"><div className="row g-4"><div className="col-lg-8"><MenuView /><UserOrderTracking /></div><div className="col-lg-4"><CartView /></div></div></div></div></Layout>} />
       
-      <Route path="/admin" element={<ProtectedRoute type="admin"><Layout><AdminPage /></Layout></ProtectedRoute>} />
+      <Route path="/chef" element={<ProtectedRoute type="chef"><Layout><ChefPage /></Layout></ProtectedRoute>} />
       <Route path="/owner" element={<ProtectedRoute type="owner"><Layout><OwnerPage /></Layout></ProtectedRoute>} />
       
-      <Route path="/login-admin" element={<Layout><LoginPage type="admin" /></Layout>} />
+      <Route path="/login-chef" element={<Layout><LoginPage type="chef" /></Layout>} />
       <Route path="/login-owner" element={<Layout><LoginPage type="owner" /></Layout>} />
-      <Route path="/login" element={<Navigate to="/login-admin" />} />
+      <Route path="/login" element={<Navigate to="/login-chef" />} />
     </Routes>
   </CartProvider>
 );
