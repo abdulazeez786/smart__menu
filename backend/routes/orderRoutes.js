@@ -6,7 +6,15 @@ const router = express.Router();
 // POST /api/orders - create new order
 router.post("/", async (req, res) => {
   try {
-    const { customerName, tableNumber, items, totalAmount, paymentMethod, cardDetails } = req.body;
+    const { 
+      customerName, 
+      tableNumber, 
+      items, 
+      totalAmount, 
+      paymentMethod, 
+      paymentStatus, 
+      cardDetails 
+    } = req.body;
 
     if (!customerName || !tableNumber || !items || !items.length || !totalAmount || !paymentMethod) {
       return res.status(400).json({ message: "Missing required order fields" });
@@ -18,7 +26,7 @@ router.post("/", async (req, res) => {
       items,
       totalAmount,
       paymentMethod,
-      paymentStatus: "pending",
+      paymentStatus: paymentStatus || "pending",
     };
 
     if (paymentMethod === "card" && cardDetails) {
