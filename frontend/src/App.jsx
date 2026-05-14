@@ -43,7 +43,7 @@ const Layout = ({ children, hideNav = false }) => {
             Mystical Wanderes
           </span>
           <div className="d-flex gap-2">
-            <Link to="/role-select" className="btn btn-sm btn-outline-secondary">Switch Role</Link>
+            <Link to="/role-select" className="btn btn-sm btn-outline-danger">Switch Role</Link>
             {isAdminLoggedIn && (
               <button
                 className="btn btn-sm btn-dark"
@@ -63,29 +63,35 @@ const Layout = ({ children, hideNav = false }) => {
 const RoleSelectionPage = () => {
   const navigate = useNavigate();
   return (
-    <div className="container d-flex flex-column justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
-      <h1 className="mb-5 fw-bold text-primary">Mystical Wanderes</h1>
-      <div className="row w-100 justify-content-center g-4" style={{ maxWidth: "600px" }}>
-        <div className="col-md-6">
-          <div 
-            className="card role-card p-5 text-center shadow-sm border-0 h-100" 
-            style={{ cursor: 'pointer', transition: '0.3s' }}
-            onClick={() => navigate("/menu")}
-          >
-            <div className="display-4 mb-3">🍽️</div>
-            <h3>Customer</h3>
-            <p className="text-muted">Order delicious food from our menu</p>
+    <div className="background d-flex flex-column justify-content-center align-items-center" style={{ minHeight: "100vh", width: "100vw" }}>
+      <div id="hero-content" style={{ position: 'relative', background: 'rgba(255,255,255,0.1)', padding: '40px', borderRadius: '30px', backdropFilter: 'blur(2px)' }}>
+        <h1 className="mb-5 fw-bold" style={{ fontSize: '4rem', fontFamily: 'cursive', color: 'orangered' }}>Mystical Wanderes</h1>
+        <div className="row w-100 justify-content-center g-4" style={{ maxWidth: "800px" }}>
+          <div className="col-md-6">
+            <div 
+              className="card p-5 text-center shadow-lg border-0 h-100" 
+              style={{ cursor: 'pointer', transition: '0.3s', borderRadius: '25px', backgroundColor: 'rgba(255,255,255,0.95)' }}
+              onClick={() => navigate("/menu")}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div className="display-4 mb-3">🍽️</div>
+              <h3 className="fw-bold" style={{ color: 'orangered', fontFamily: 'cursive' }}>Customer</h3>
+              <p className="text-muted">Order delicious food from our menu</p>
+            </div>
           </div>
-        </div>
-        <div className="col-md-6">
-          <div 
-            className="card role-card p-5 text-center shadow-sm border-0 h-100" 
-            style={{ cursor: 'pointer', transition: '0.3s' }}
-            onClick={() => navigate("/admin")}
-          >
-            <div className="display-4 mb-3">🔐</div>
-            <h3>Admin</h3>
-            <p className="text-muted">Manage orders and restaurant settings</p>
+          <div className="col-md-6">
+            <div 
+              className="card p-5 text-center shadow-lg border-0 h-100" 
+              style={{ cursor: 'pointer', transition: '0.3s', borderRadius: '25px', backgroundColor: 'rgba(255,255,255,0.95)' }}
+              onClick={() => navigate("/admin")}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div className="display-4 mb-3">🔐</div>
+              <h3 className="fw-bold" style={{ color: 'orangered', fontFamily: 'cursive' }}>Admin</h3>
+              <p className="text-muted">Manage orders and restaurant settings</p>
+            </div>
           </div>
         </div>
       </div>
