@@ -334,11 +334,11 @@ const CartView = () => {
         <div className="card-body">
           <h5 className="card-title fw-bold mb-3">Order Details</h5>
           <div className="mb-2">
-            <label className="extra-small fw-bold">Customer Name</label>
+            <label className="small fw-bold text-dark d-block mb-1">Customer Name</label>
             <input className="form-control form-control-sm" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Your Name" />
           </div>
           <div className="mb-3">
-            <label className="extra-small fw-bold">Select Table (0-20)</label>
+            <label className="small fw-bold text-dark d-block mb-1">Select Table (0-20)</label>
             <select className="form-select form-select-sm" value={tableNumber} onChange={e => setTableNumber(e.target.value)}>
               <option value="">Choose Table</option>
               {[...Array(21).keys()].map(n => <option key={n} value={n}>Table {n}</option>)}
@@ -425,6 +425,8 @@ const ChefPage = () => {
 
 const OwnerPage = () => {
   const [orders, setOrders] = useState([]);
+  const [filter, setFilter] = useState("all");
+
   useEffect(() => {
     const fetch = async () => {
       const res = await API.get("/orders");
@@ -441,51 +443,76 @@ const OwnerPage = () => {
     return { total, cash, qr, card };
   }, [orders]);
 
+  const filteredOrders = useMemo(() => {
+    if (filter === "all") return orders;
+    return orders.filter(o => o.paymentMethod === filter);
+  }, [orders, filter]);
+
   return (
     <div className="container py-5">
-      <h2 className="fw-bold mb-4">Owner Financial Summary</h2>
-      <div className="row g-4 mb-5">
-        <div className="col-md-3">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="fw-bold m-0">Owner Dashboard</h2>
+        <div className="d-flex align-items-center gap-2">
+           <span className="small fw-bold text-muted">Filter Payments:</span>
+           <select className="form-select form-select-sm rounded-pill shadow-sm" style={{width: '150px'}} value={filter} onChange={e => setFilter(e.target.value)}>
+             <option value="all">All Methods</option>
+             <option value="cash">Cash Only</option>
+             <option value="qr">QR Only</option>
+             <option value="card">Card Only</option>
+           </select>
+        </div>
+      </div>
+
+      <div className="row g-4 mb-5 justify-content-center">
+        <div className="col-md-4">
           <div className="card p-4 shadow-sm border-0 text-white" style={{background: 'linear-gradient(45deg, #11998e, #38ef7d)'}}>
             <h6 className="small fw-bold">TOTAL REVENUE</h6>
             <h2 className="fw-bold">₹{stats.total}</h2>
           </div>
         </div>
-        <div className="col-md-3">
-          <div className="card p-4 shadow-sm border-0 bg-white">
-            <h6 className="small fw-bold text-muted">CASH PAYMENTS</h6>
-            <h2 className="fw-bold text-dark">₹{stats.cash}</h2>
+
+        {filter === 'cash' && (
+          <div className="col-md-4">
+            <div className="card p-4 shadow-sm border-0 bg-white border-start border-success border-4">
+              <h6 className="small fw-bold text-muted">CASH REVENUE</h6>
+              <h2 className="fw-bold text-dark">₹{stats.cash}</h2>
+            </div>
           </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card p-4 shadow-sm border-0 bg-white">
-            <h6 className="small fw-bold text-muted">QR PAYMENTS</h6>
-            <h2 className="fw-bold text-primary">₹{stats.qr}</h2>
+        )}
+        {filter === 'qr' && (
+          <div className="col-md-4">
+            <div className="card p-4 shadow-sm border-0 bg-white border-start border-primary border-4">
+              <h6 className="small fw-bold text-muted">QR REVENUE</h6>
+              <h2 className="fw-bold text-primary">₹{stats.qr}</h2>
+            </div>
           </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card p-4 shadow-sm border-0 bg-white">
-            <h6 className="small fw-bold text-muted">CARD PAYMENTS</h6>
-            <h2 className="fw-bold text-info">₹{stats.card}</h2>
+        )}
+        {filter === 'card' && (
+          <div className="col-md-4">
+            <div className="card p-4 shadow-sm border-0 bg-white border-start border-info border-4">
+              <h6 className="small fw-bold text-muted">CARD REVENUE</h6>
+              <h2 className="fw-bold text-info">₹{stats.card}</h2>
+            </div>
           </div>
-        </div>
+        )}
       </div>
-      <div className="card border-0 shadow-sm p-4">
-        <h5 className="fw-bold mb-3">Detailed Transaction History</h5>
+
+      <div className="card border-0 shadow-sm p-4 rounded-4">
+        <h5 className="fw-bold mb-3">{filter.toUpperCase()} Transactions</h5>
         <div className="table-responsive">
-          <table className="table small">
-            <thead>
+          <table className="table table-hover">
+            <thead className="table-light">
               <tr>
                 <th>Date</th><th>Customer</th><th>Method</th><th>Status</th><th>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
+              {filteredOrders.map(o => (
                 <tr key={o._id}>
                   <td>{new Date(o.createdAt).toLocaleDateString()}</td>
                   <td>{o.customerName}</td>
-                  <td className="text-uppercase">{o.paymentMethod}</td>
-                  <td>{o.paymentStatus}</td>
+                  <td><span className="badge bg-light text-dark border">{o.paymentMethod.toUpperCase()}</span></td>
+                  <td><span className={`badge ${o.paymentStatus === 'completed' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}`}>{o.paymentStatus}</span></td>
                   <td className="fw-bold">₹{o.totalAmount}</td>
                 </tr>
               ))}
